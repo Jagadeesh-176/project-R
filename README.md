@@ -9,6 +9,10 @@ built to learn the fundamentals before extending it into something bigger.
   slide-over drawer on mobile) with 6 themes (System/Light/Dark/Ocean/
   Sunset/Forest), Markdown-rendered answers, and document upload built in.
 
+**New to RAG?** Read [`HOW_IT_WORKS.md`](HOW_IT_WORKS.md) first — it traces
+one real question through every concept (chunking, embeddings, vector
+search, prompting) using this app's actual data, not made-up examples.
+
 ## What is RAG, in one paragraph?
 
 An LLM (like Gemini) only knows what it learned during training — it has no
