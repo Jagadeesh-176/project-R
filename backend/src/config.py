@@ -35,6 +35,10 @@ CHUNK_OVERLAP = 100
 TOP_K = 4
 
 # --- Storage locations ---
-DATA_DIR = "data/sample_docs"   # where source .txt documents live
+DATA_DIR = "data/sample_docs"   # bundled demo documents (tracked in git)
+UPLOADS_DIR = "data/uploads"    # user-uploaded documents (NOT tracked in git)
 CHROMA_DIR = "chroma_db"        # where the local vector database is persisted to disk
 COLLECTION_NAME = "rag_docs"    # name of the collection inside that database
+
+# --- Uploads ---
+MAX_UPLOAD_MB = 15

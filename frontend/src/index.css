@@ -80,8 +80,129 @@ body {
   cursor: pointer;
 }
 
-.rebuild-btn:disabled {
+.rebuild-btn:disabled,
+.upload-btn:disabled {
   opacity: 0.6;
+  cursor: default;
+}
+
+.docs-toggle-btn {
+  flex-shrink: 0;
+  padding: 8px 12px;
+  font-size: 0.82rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.documents-panel {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.documents-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.upload-btn {
+  flex-shrink: 0;
+  padding: 8px 12px;
+  font-size: 0.82rem;
+  border-radius: 8px;
+  border: none;
+  background: var(--accent);
+  color: var(--accent-text);
+  cursor: pointer;
+}
+
+.clear-btn {
+  flex-shrink: 0;
+  padding: 8px 12px;
+  font-size: 0.82rem;
+  border-radius: 8px;
+  border: 1px solid var(--error-text);
+  background: var(--surface);
+  color: var(--error-text);
+  cursor: pointer;
+}
+
+.clear-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.documents-hint {
+  margin: 8px 0 0;
+  font-size: 0.76rem;
+  color: var(--text-muted);
+}
+
+.documents-list {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.documents-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: var(--bg);
+  font-size: 0.82rem;
+}
+
+.doc-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.doc-chunks {
+  flex-shrink: 0;
+  color: var(--text-muted);
+  font-size: 0.76rem;
+}
+
+.doc-badge {
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  color: var(--accent);
+  background: var(--system-bubble);
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.doc-delete {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--error-text);
+  cursor: pointer;
+  font-size: 0.72rem;
+  line-height: 1;
+  padding: 0;
+}
+
+.doc-delete:disabled {
+  opacity: 0.5;
   cursor: default;
 }
 

@@ -42,3 +42,30 @@ export async function checkHealth() {
     return false;
   }
 }
+
+export async function listDocuments() {
+  const res = await fetch(`${API_BASE}/api/documents`);
+  return handleResponse(res);
+}
+
+export async function uploadDocument(file) {
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await fetch(`${API_BASE}/api/upload`, {
+    method: "POST",
+    body: formData, // no Content-Type header — the browser sets the multipart boundary itself
+  });
+  return handleResponse(res);
+}
+
+export async function deleteDocument(filename) {
+  const res = await fetch(`${API_BASE}/api/documents/${encodeURIComponent(filename)}`, {
+    method: "DELETE",
+  });
+  return handleResponse(res);
+}
+
+export async function clearUploads() {
+  const res = await fetch(`${API_BASE}/api/documents`, { method: "DELETE" });
+  return handleResponse(res);
+}

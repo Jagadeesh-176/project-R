@@ -238,6 +238,42 @@ prompt explicitly restricts it to the provided context. That refusal is the
 whole point of RAG: it's what makes answers trustworthy instead of
 plausible-sounding fabrications.
 
+## Uploading your own documents
+
+Click **📚 Documents** in the app header to open the documents panel. From
+there:
+
+- **Upload** a `.txt`, `.md`, `.pdf`, or `.docx` file (15MB limit). It's
+  chunked and embedded immediately — no separate "rebuild" step needed — and
+  becomes askable right away, alongside the original sample docs.
+- **Uploads accumulate.** Every file you add stays in the knowledge base
+  until you remove it; questions are answered from whichever chunks (sample
+  or uploaded) are most relevant, regardless of source.
+- **Re-uploading the same filename replaces it** — its old chunks are
+  dropped first, so you can fix a typo'd document by just uploading it again
+  under the same name.
+- **Remove** any uploaded document with the ✕ next to it in the list. The
+  three built-in sample docs are protected from removal (they're what the
+  suggestion chips and README examples rely on) — everything else is fair
+  game.
+
+Under the hood: `backend/data/uploads/` holds the raw uploaded files (text
+is extracted via `src/loaders.py` — plain read for `.txt`/`.md`, `pypdf` for
+PDFs, `python-docx` for Word docs), separately from `backend/data/sample_docs/`
+which holds the bundled demo content. `src/ingest.py`'s `ingest_uploaded_file()`
+chunks + embeds + stores just the one new file, rather than re-processing
+everything — the same chunking/embedding pipeline as ingestion, just scoped
+to a single document instead of a full rebuild.
+
+**One real limitation worth knowing**: `data/uploads/` is deliberately **not**
+tracked in git (see `.gitignore`) — it's your personal, private content, not
+something that belongs in the repo. Locally this just means uploads persist
+on your disk like any other file. **On Render's free tier, which has no
+persistent disk, this means uploaded documents do NOT survive a cold start**
+(the backend spinning down after 15 min idle and restarting) — only the
+git-tracked sample docs get auto-restored on startup. If you outgrow this,
+see the Deployment section's note on paid disks / hosted vector stores.
+
 ## Troubleshooting
 
 - **"Missing GOOGLE_API_KEY"** — `backend/.env` doesn't have a real key in

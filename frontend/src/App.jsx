@@ -1,11 +1,21 @@
 import { useEffect, useRef, useState } from "react";
-import { askQuestion, checkHealth, rebuildIndex } from "./api.js";
+import {
+  askQuestion,
+  checkHealth,
+  clearUploads,
+  deleteDocument,
+  listDocuments,
+  rebuildIndex,
+  uploadDocument,
+} from "./api.js";
 
 const SUGGESTIONS = [
   "How many PTO days do Acme employees get?",
   "What gripper design did Project Apollo choose?",
   "How many devices can the Acme Home Hub support?",
 ];
+
+const ACCEPTED_TYPES = ".txt,.md,.pdf,.docx";
 
 function SourceList({ sources }) {
   if (!sources || sources.length === 0) return null;
@@ -26,16 +36,85 @@ function SourceList({ sources }) {
   );
 }
 
+function DocumentsPanel({
+  documents,
+  uploading,
+  deletingFilename,
+  rebuilding,
+  clearing,
+  onUploadClick,
+  onDelete,
+  onRebuild,
+  onClearUploads,
+}) {
+  const hasUploads = documents.some((d) => !d.is_sample);
+
+  return (
+    <div className="documents-panel">
+      <div className="documents-actions">
+        <button onClick={onUploadClick} disabled={uploading} className="upload-btn">
+          {uploading ? "Uploading…" : "+ Upload document"}
+        </button>
+        <button onClick={onRebuild} disabled={rebuilding} className="rebuild-btn">
+          {rebuilding ? "Rebuilding…" : "Rebuild index"}
+        </button>
+        {hasUploads && (
+          <button onClick={onClearUploads} disabled={clearing} className="clear-btn">
+            {clearing ? "Clearing…" : "Clear uploads"}
+          </button>
+        )}
+      </div>
+      <p className="documents-hint">Supports {ACCEPTED_TYPES.replaceAll(".", " ").trim()} files.</p>
+
+      <ul className="documents-list">
+        {documents.map((doc) => (
+          <li key={doc.filename}>
+            <span className="doc-name">{doc.filename}</span>
+            <span className="doc-chunks">{doc.chunks} chunk(s)</span>
+            {doc.is_sample ? (
+              <span className="doc-badge">sample</span>
+            ) : (
+              <button
+                className="doc-delete"
+                onClick={() => onDelete(doc.filename)}
+                disabled={deletingFilename === doc.filename}
+                aria-label={`Remove ${doc.filename}`}
+              >
+                {deletingFilename === doc.filename ? "…" : "✕"}
+              </button>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 export default function App() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [backendUp, setBackendUp] = useState(null); // null = checking
   const [rebuilding, setRebuilding] = useState(false);
+  const [documents, setDocuments] = useState([]);
+  const [docsOpen, setDocsOpen] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [deletingFilename, setDeletingFilename] = useState(null);
+  const [clearing, setClearing] = useState(false);
   const scrollRef = useRef(null);
+  const fileInputRef = useRef(null);
+
+  function refreshDocuments() {
+    listDocuments()
+      .then(setDocuments)
+      .catch(() => {}); // best-effort — a stale/missing list isn't worth surfacing an error for
+  }
 
   useEffect(() => {
-    checkHealth().then(setBackendUp);
+    checkHealth().then((ok) => {
+      setBackendUp(ok);
+      if (ok) refreshDocuments();
+    });
   }, []);
 
   useEffect(() => {
@@ -77,6 +156,7 @@ export default function App() {
           text: `Index rebuilt: ${result.documents} document(s) → ${result.chunks} chunk(s).`,
         },
       ]);
+      refreshDocuments();
     } catch (err) {
       setMessages((prev) => [
         ...prev,
@@ -84,6 +164,72 @@ export default function App() {
       ]);
     } finally {
       setRebuilding(false);
+    }
+  }
+
+  async function handleFileChosen(e) {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // reset so choosing the same file again still fires onChange
+    if (!file) return;
+
+    setUploading(true);
+    try {
+      const result = await uploadDocument(file);
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "system",
+          text: `Uploaded "${result.filename}" → ${result.chunks} chunk(s) added. You can ask about it now.`,
+        },
+      ]);
+      refreshDocuments();
+    } catch (err) {
+      setMessages((prev) => [
+        ...prev,
+        { role: "error", text: err.message || "Upload failed." },
+      ]);
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function handleDeleteDoc(filename) {
+    setDeletingFilename(filename);
+    try {
+      await deleteDocument(filename);
+      setMessages((prev) => [
+        ...prev,
+        { role: "system", text: `Removed "${filename}" from the knowledge base.` },
+      ]);
+      refreshDocuments();
+    } catch (err) {
+      setMessages((prev) => [
+        ...prev,
+        { role: "error", text: err.message || "Couldn't remove that document." },
+      ]);
+    } finally {
+      setDeletingFilename(null);
+    }
+  }
+
+  async function handleClearUploads() {
+    if (!window.confirm("Remove all uploaded documents? Sample docs will stay.")) return;
+
+    setClearing(true);
+    try {
+      const result = await clearUploads();
+      setMessages((prev) => [
+        ...prev,
+        { role: "system", text: `Cleared ${result.count} uploaded document(s).` },
+      ]);
+      refreshDocuments();
+    } catch (err) {
+      setMessages((prev) => [
+        ...prev,
+        { role: "error", text: err.message || "Couldn't clear uploads." },
+      ]);
+    } finally {
+      setClearing(false);
     }
   }
 
@@ -105,15 +251,39 @@ export default function App() {
               : "Backend unreachable — is uvicorn running?"}
           </p>
         </div>
-        <button onClick={handleRebuild} disabled={rebuilding} className="rebuild-btn">
-          {rebuilding ? "Rebuilding…" : "Rebuild index"}
+        <button onClick={() => setDocsOpen((v) => !v)} className="docs-toggle-btn">
+          📚 Documents ({documents.length}) {docsOpen ? "▲" : "▼"}
         </button>
       </header>
+
+      {docsOpen && (
+        <DocumentsPanel
+          documents={documents}
+          uploading={uploading}
+          deletingFilename={deletingFilename}
+          rebuilding={rebuilding}
+          clearing={clearing}
+          onUploadClick={() => fileInputRef.current?.click()}
+          onDelete={handleDeleteDoc}
+          onRebuild={handleRebuild}
+          onClearUploads={handleClearUploads}
+        />
+      )}
+      <input
+        type="file"
+        ref={fileInputRef}
+        accept={ACCEPTED_TYPES}
+        onChange={handleFileChosen}
+        hidden
+      />
 
       <main className="messages" ref={scrollRef}>
         {messages.length === 0 && (
           <div className="empty-state">
-            <p>Ask a question about the sample documents in backend/data/sample_docs.</p>
+            <p>
+              Ask a question about the sample documents, or upload your own via{" "}
+              <strong>📚 Documents</strong> above.
+            </p>
             <div className="suggestions">
               {SUGGESTIONS.map((s) => (
                 <button key={s} onClick={() => send(s)} className="suggestion-chip">

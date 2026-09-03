@@ -5,6 +5,7 @@ __pycache__/
 .env
 chroma_db/
 *.egg-info/
+data/uploads/
 
 # Node (frontend/)
 node_modules/

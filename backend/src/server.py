@@ -13,13 +13,19 @@ phone), not just from this PC. See the README for testing on a phone.
 Once running, interactive API docs are auto-generated at:
     http://localhost:8000/docs
 """
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from google.genai import errors as genai_errors
 from pydantic import BaseModel
 
 from src.clients import get_collection, require_api_key
-from src.ingest import run_ingest
+from src.ingest import (
+    clear_uploads,
+    ingest_uploaded_file,
+    list_documents,
+    remove_document,
+    run_ingest,
+)
 from src.rag import answer_question
 
 app = FastAPI(title="RAG Demo API")
@@ -56,6 +62,27 @@ class IngestResponse(BaseModel):
     documents: int
     chunks: int
     reset: bool
+
+
+class DocumentItem(BaseModel):
+    filename: str
+    chunks: int
+    is_sample: bool
+
+
+class UploadResponse(BaseModel):
+    filename: str
+    chunks: int
+
+
+class RemoveResponse(BaseModel):
+    filename: str
+    removed: bool
+
+
+class ClearUploadsResponse(BaseModel):
+    removed: list[str]
+    count: int
 
 
 @app.on_event("startup")
@@ -110,4 +137,38 @@ def ingest(reset: bool = False):
     try:
         return run_ingest(reset=reset)
     except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@app.get("/api/documents", response_model=list[DocumentItem])
+def documents():
+    return list_documents()
+
+
+@app.post("/api/upload", response_model=UploadResponse)
+async def upload(file: UploadFile):
+    raw_bytes = await file.read()
+    try:
+        return ingest_uploaded_file(file.filename, raw_bytes)
+    except ValueError as exc:
+        # Bad input: wrong file type, too large, empty/unreadable — the
+        # user can fix these themselves, so 400 rather than 500.
+        raise HTTPException(status_code=400, detail=str(exc))
+    except genai_errors.ServerError:
+        raise HTTPException(
+            status_code=503,
+            detail="The AI model is temporarily busy. Please try uploading again in a few seconds.",
+        )
+
+
+@app.delete("/api/documents", response_model=ClearUploadsResponse)
+def clear_all_uploads():
+    return clear_uploads()
+
+
+@app.delete("/api/documents/{filename}", response_model=RemoveResponse)
+def delete_document(filename: str):
+    try:
+        return remove_document(filename)
+    except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
