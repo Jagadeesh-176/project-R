@@ -8,87 +8,16 @@ import {
   rebuildIndex,
   uploadDocument,
 } from "./api.js";
+import ChatMessage from "./components/ChatMessage.jsx";
+import Composer from "./components/Composer.jsx";
+import Icon from "./components/Icon.jsx";
+import Sidebar from "./components/Sidebar.jsx";
 
 const SUGGESTIONS = [
   "How many PTO days do Acme employees get?",
   "What gripper design did Project Apollo choose?",
   "How many devices can the Acme Home Hub support?",
 ];
-
-const ACCEPTED_TYPES = ".txt,.md,.pdf,.docx";
-
-function SourceList({ sources }) {
-  if (!sources || sources.length === 0) return null;
-  return (
-    <details className="sources">
-      <summary>{sources.length} source(s)</summary>
-      <ul>
-        {sources.map((s, i) => (
-          <li key={i}>
-            <span className="source-name">
-              {s.source} <span className="source-meta">#{s.chunk_index}</span>
-            </span>
-            <p className="source-preview">{s.preview}…</p>
-          </li>
-        ))}
-      </ul>
-    </details>
-  );
-}
-
-function DocumentsPanel({
-  documents,
-  uploading,
-  deletingFilename,
-  rebuilding,
-  clearing,
-  onUploadClick,
-  onDelete,
-  onRebuild,
-  onClearUploads,
-}) {
-  const hasUploads = documents.some((d) => !d.is_sample);
-
-  return (
-    <div className="documents-panel">
-      <div className="documents-actions">
-        <button onClick={onUploadClick} disabled={uploading} className="upload-btn">
-          {uploading ? "Uploading…" : "+ Upload document"}
-        </button>
-        <button onClick={onRebuild} disabled={rebuilding} className="rebuild-btn">
-          {rebuilding ? "Rebuilding…" : "Rebuild index"}
-        </button>
-        {hasUploads && (
-          <button onClick={onClearUploads} disabled={clearing} className="clear-btn">
-            {clearing ? "Clearing…" : "Clear uploads"}
-          </button>
-        )}
-      </div>
-      <p className="documents-hint">Supports {ACCEPTED_TYPES.replaceAll(".", " ").trim()} files.</p>
-
-      <ul className="documents-list">
-        {documents.map((doc) => (
-          <li key={doc.filename}>
-            <span className="doc-name">{doc.filename}</span>
-            <span className="doc-chunks">{doc.chunks} chunk(s)</span>
-            {doc.is_sample ? (
-              <span className="doc-badge">sample</span>
-            ) : (
-              <button
-                className="doc-delete"
-                onClick={() => onDelete(doc.filename)}
-                disabled={deletingFilename === doc.filename}
-                aria-label={`Remove ${doc.filename}`}
-              >
-                {deletingFilename === doc.filename ? "…" : "✕"}
-              </button>
-            )}
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
 
 export default function App() {
   const [messages, setMessages] = useState([]);
@@ -97,10 +26,10 @@ export default function App() {
   const [backendUp, setBackendUp] = useState(null); // null = checking
   const [rebuilding, setRebuilding] = useState(false);
   const [documents, setDocuments] = useState([]);
-  const [docsOpen, setDocsOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [deletingFilename, setDeletingFilename] = useState(null);
   const [clearing, setClearing] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false); // mobile drawer only
   const scrollRef = useRef(null);
   const fileInputRef = useRef(null);
 
@@ -233,95 +162,90 @@ export default function App() {
     }
   }
 
-  function handleSubmit(e) {
-    e.preventDefault();
-    send(input);
-  }
-
   return (
-    <div className="app">
-      <header className="header">
-        <div>
-          <h1>RAG Demo</h1>
-          <p className={`status ${backendUp ? "status-ok" : "status-down"}`}>
-            {backendUp === null
-              ? "Checking backend…"
-              : backendUp
-              ? "Backend connected"
-              : "Backend unreachable — is uvicorn running?"}
-          </p>
-        </div>
-        <button onClick={() => setDocsOpen((v) => !v)} className="docs-toggle-btn">
-          📚 Documents ({documents.length}) {docsOpen ? "▲" : "▼"}
-        </button>
-      </header>
-
-      {docsOpen && (
-        <DocumentsPanel
-          documents={documents}
-          uploading={uploading}
-          deletingFilename={deletingFilename}
-          rebuilding={rebuilding}
-          clearing={clearing}
-          onUploadClick={() => fileInputRef.current?.click()}
-          onDelete={handleDeleteDoc}
-          onRebuild={handleRebuild}
-          onClearUploads={handleClearUploads}
-        />
-      )}
+    <div className="app-shell">
+      <Sidebar
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        backendUp={backendUp}
+        documents={documents}
+        uploading={uploading}
+        deletingFilename={deletingFilename}
+        rebuilding={rebuilding}
+        clearing={clearing}
+        onUploadClick={() => fileInputRef.current?.click()}
+        onDelete={handleDeleteDoc}
+        onRebuild={handleRebuild}
+        onClearUploads={handleClearUploads}
+      />
       <input
         type="file"
         ref={fileInputRef}
-        accept={ACCEPTED_TYPES}
+        accept=".txt,.md,.pdf,.docx"
         onChange={handleFileChosen}
         hidden
       />
 
-      <main className="messages" ref={scrollRef}>
-        {messages.length === 0 && (
-          <div className="empty-state">
-            <p>
-              Ask a question about the sample documents, or upload your own via{" "}
-              <strong>📚 Documents</strong> above.
-            </p>
-            <div className="suggestions">
-              {SUGGESTIONS.map((s) => (
-                <button key={s} onClick={() => send(s)} className="suggestion-chip">
-                  {s}
-                </button>
-              ))}
+      <div className="main">
+        <div className="topbar">
+          <button
+            className="topbar-menu-btn"
+            onClick={() => setSidebarOpen(true)}
+            aria-label="Open menu"
+          >
+            <Icon name="menu" size={20} />
+          </button>
+          <span className="topbar-title">RAG Studio</span>
+        </div>
+
+        <main className="messages" ref={scrollRef}>
+          {messages.length === 0 && (
+            <div className="empty-state">
+              <div className="empty-icon">
+                <Icon name="bot" size={28} />
+              </div>
+              <h2>Ask your documents anything</h2>
+              <p>
+                Answers are grounded in the sample documents and anything you upload —
+                open <strong>the sidebar</strong> to add your own.
+              </p>
+              <div className="suggestions">
+                {SUGGESTIONS.map((s) => (
+                  <button key={s} onClick={() => send(s)} className="suggestion-chip">
+                    {s}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {messages.map((m, i) => (
-          <div key={i} className={`bubble-row ${m.role}`}>
-            <div className={`bubble ${m.role}`}>
-              <p>{m.text}</p>
-              {m.role === "assistant" && <SourceList sources={m.sources} />}
+          {messages.map((m, i) => (
+            <ChatMessage key={i} role={m.role} text={m.text} sources={m.sources} />
+          ))}
+
+          {loading && (
+            <div className="message-row assistant">
+              <div className="avatar avatar-bot">
+                <Icon name="bot" size={16} />
+              </div>
+              <div className="bubble assistant thinking">
+                <span className="typing-dot" />
+                <span className="typing-dot" />
+                <span className="typing-dot" />
+              </div>
             </div>
-          </div>
-        ))}
+          )}
+        </main>
 
-        {loading && (
-          <div className="bubble-row assistant">
-            <div className="bubble assistant thinking">Thinking…</div>
-          </div>
-        )}
-      </main>
-
-      <form className="composer" onSubmit={handleSubmit}>
-        <input
-          type="text"
+        <Composer
           value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Ask a question…"
-          disabled={loading}
+          onChange={setInput}
+          onSubmit={() => send(input)}
+          onAttachClick={() => fileInputRef.current?.click()}
+          loading={loading}
+          uploading={uploading}
         />
-        <button type="submit" disabled={loading || !input.trim()}>
-          Send
-        </button>
-      </form>
+      </div>
     </div>
   );
 }

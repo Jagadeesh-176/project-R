@@ -5,8 +5,9 @@ built to learn the fundamentals before extending it into something bigger.
 
 - **Backend**: Python + FastAPI, using Google's Gemini API for embeddings and
   text generation, with a local Chroma vector database.
-- **Frontend**: Plain React (Vite), one responsive UI that works in both a
-  desktop browser and a phone's browser.
+- **Frontend**: Plain React (Vite) — a sidebar + chat layout (collapses to a
+  slide-over drawer on mobile) with 6 themes (System/Light/Dark/Ocean/
+  Sunset/Forest), Markdown-rendered answers, and document upload built in.
 
 ## What is RAG, in one paragraph?
 
