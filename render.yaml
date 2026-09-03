@@ -10,7 +10,11 @@ services:
     rootDir: backend
     plan: free
     buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn src.server:app --host 0.0.0.0 --port $PORT
+    # "python -m uvicorn" (not bare "uvicorn") — the bare console-script isn't
+    # reliably on PATH in Render's runtime container even though the package
+    # installed fine at build time; invoking it as a module through "python"
+    # always resolves correctly.
+    startCommand: python -m uvicorn src.server:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /api/health
     envVars:
       # Set the real value in the Render dashboard after the first deploy —
