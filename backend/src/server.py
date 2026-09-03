@@ -15,6 +15,7 @@ Once running, interactive API docs are auto-generated at:
 """
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from google.genai import errors as genai_errors
 from pydantic import BaseModel
 
 from src.clients import get_collection, require_api_key
@@ -90,6 +91,14 @@ def query(payload: QueryRequest):
 
     try:
         return answer_question(question, top_k=payload.top_k)
+    except genai_errors.ServerError:
+        # Gemini's own servers are temporarily overloaded (this is already
+        # retried a few times inside rag.py before giving up). 503 tells the
+        # frontend this is transient and worth trying again shortly.
+        raise HTTPException(
+            status_code=503,
+            detail="The AI model is temporarily busy. Please try again in a few seconds.",
+        )
     except Exception as exc:
         # Most commonly: no vector store built yet. Surface a clear message
         # to the UI instead of a generic 500.
