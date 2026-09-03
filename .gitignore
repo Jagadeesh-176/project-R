@@ -1,0 +1,13 @@
+# Python (backend/)
+.venv/
+__pycache__/
+*.pyc
+.env
+chroma_db/
+*.egg-info/
+
+# Node (frontend/)
+node_modules/
+dist/
+.env.local
+*.log

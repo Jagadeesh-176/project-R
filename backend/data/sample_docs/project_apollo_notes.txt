@@ -1,0 +1,26 @@
+Project Apollo — Engineering Notes (Internal)
+
+Overview
+Project Apollo is the codename for Acme Robotics' next-generation warehouse
+picking arm, targeting a Q2 2027 pilot with two logistics partners. The arm
+uses a redesigned gripper (internally called "Gripper Mk4") that can handle
+irregularly shaped packages up to 4kg.
+
+Key Decisions (from the 2026-08-14 design review)
+- The team chose a vision-guided grasping approach over pure force-feedback,
+  using a stereo camera pair mounted above the picking cell.
+- Gripper Mk4 will use a hybrid vacuum + two-finger design rather than a
+  vacuum-only design, after vacuum-only testing showed a 12% failure rate on
+  soft-sided packages.
+- Firmware for the arm's motion controller will be written in Rust, replacing
+  the C++ codebase used in Project Icarus (the previous-generation arm).
+
+Open Risks
+- Camera calibration drifts by roughly 2mm after 8 hours of continuous
+  operation; the team is investigating a self-calibration routine that runs
+  during idle periods.
+- Supplier lead time for the Mk4 gripper's force sensors is currently 14
+  weeks, which is longer than the project's buffer allows.
+
+Next Milestone
+A working prototype of Gripper Mk4 is due for internal demo on 2026-11-20.

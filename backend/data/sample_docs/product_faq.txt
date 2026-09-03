@@ -1,0 +1,26 @@
+Acme Home Hub — Frequently Asked Questions
+
+What is the Acme Home Hub?
+The Acme Home Hub is a smart-home controller that connects to Wi-Fi and
+Zigbee devices, letting you control lights, thermostats, and locks from one
+app. It launched in March 2026.
+
+How many devices can it support?
+A single Home Hub supports up to 150 connected devices. If you need more,
+Acme recommends pairing two hubs using the "Hub Mesh" feature introduced in
+firmware version 2.3.
+
+Does it work without internet?
+Yes. Local automations (routines that don't call external services, like
+"turn on the porch light at sunset") continue to run during an internet
+outage. Voice assistant integration and remote access require an internet
+connection.
+
+What is the battery backup time?
+The Home Hub includes a built-in battery that keeps the device running for
+up to 4 hours during a power outage, preserving local automations.
+
+How do I reset it to factory settings?
+Hold the reset button on the back of the unit for 12 seconds until the LED
+ring flashes red three times, then release. This erases all paired devices
+and routines.
